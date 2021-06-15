@@ -1,0 +1,11 @@
+{
+	"connectTimeoutInSeconds" : 120,
+	"readTimeoutInSeconds" : 120,
+	"environmentId" : "194da2f0-3e22-11ea-ba75-12f2f63694e5",
+	"workspaceId" : "194c1c50-3e22-11ea-ba75-12f2f63694e5",
+	"trafficTypeId" : "194c6a70-3e22-11ea-ba75-12f2f63694e5",
+	"projectId" : 2196852,
+	"mixpanelAuthorization" : "Basic M2Y5MmI1MDU1YmI2ODIyNTk0YzM1Zjk2Y2RiNzhhNzc=:",
+	"splitAuthorization" : "Bearer s89o54pmqu68oionpm30ipuqh7pkffplsadv",
+	"segmentLimit" : 100
+}

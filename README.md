@@ -1,7 +1,5 @@
 # MixPanel to Split Cohort Synchronization
 
-![alt text](http://www.cortazar-split.com/MixPanel2Split.png)
-
 To run, build the executable JAR file and run with a JSON configuration as argument.
 
 mvn clean compile assembly:single

@@ -4,8 +4,6 @@
 
 To run, build the executable JAR file and run with a JSON configuration as argument.
 
-Compile with Maven:
-
 mvn clean compile assembly:single
 
 Executable JAR takes name of configuration file as argument.

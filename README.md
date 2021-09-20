@@ -17,7 +17,12 @@ Sample configuration file.
 	"projectId" : 123456,
 	"mixpanelAuthorization" : "Basic M2Y5xxXXXXXXXXXXXXXXXX",
 	"splitAuthorization" : "Bearer s89oXXXXXXXXXXXXXXXXX",
-	"segmentLimit" : 100
+	"segmentLimit" : 100,
+	"includedCohorts" : [
+                 "MixSplitPanel",
+                "Adopt-a-Dog.*",
+                "AnyRegexForCohort"
+	]
 }
 ```
 Configuration Fields:
@@ -31,5 +36,5 @@ Configuration Fields:
 * "mixpanelAuthorization" - for now, the unfriendly Basic Auth string; get from Postman
 * "splitAuthorization" - get an admin API token from Split Admin UI and paste it after the Bearer"
 * "segmentLimit" - maximum number of segments to synchronize
-
+* "includedCohorts" - JSON array of cohort names or regular expressions to match cohort names
 

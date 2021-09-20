@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -70,8 +72,18 @@ public class App
 		
 		for(int k = 0; k < cohortArray.length(); k++) {
 			JSONObject o = cohortArray.getJSONObject(k);
-			cohorts.put(o.getString("name"), o.getInt("id"));
-			System.out.println("queuing cohort " + o.getString("name") + "...");
+			boolean found = false;
+			for(String exp : config.includedCohorts) {
+				Pattern p = Pattern.compile(exp);
+				Matcher m = p.matcher(o.getString("name"));
+				if(m.matches()) {
+					found = true;
+					cohorts.put(o.getString("name"), o.getInt("id"));
+					System.out.println("+ " + o.getString("name") + "...");
+				} else {
+					System.out.println("- " + o.getString("name"));
+				}
+			}
 		}
 		return cohorts;
 	}
@@ -186,11 +198,15 @@ public class App
 		long start = System.currentTimeMillis();
 		System.out.println("START MixPanel engage query");
 		MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
+//		String bodyString = "filter_by_cohort={\"raw_cohort\":{\"description\":\"\",\"name\":\"\",\"id\":null,\"unsavedId\":\"\",\"groups\":[{\"type\":\"cohort_group\",\"event\":{\"resourceType\":\"cohort\",\"value\":\"$all_users\",\"label\":\"All Users\"},\"filters\":[{\"filterValue\":" 
+//				+"[{\"cohort\":{\"id\":" + cohortId + ",\"name\":\"" + cohortName + "\"" 
+//				+ ",\"negated\":false}}],\"resourceType\":\"cohort\",\"propertyType\":\"list\",\"filterOperator\":\"contains\"}],\"filtersOperator\":\"and\",\"behavioralFiltersOperator\":\"and\",\"groupingOperator\":null,\"property\":null,\"dataGroupId\":\"\"}]}}&project_id=" + config.projectId;
+		String bodyString = "filter_by_cohort={\"raw_cohort\":{\"behaviors\":{},\"id\":null,\"name\":null,\"selector\":{\"children\":[{\"children\":[{\"property\":\"cohort\",\"value\":" + cohortId + "},{\"property\":\"literal\",\"value\":false}],\"operator\":\"or\"},{\"property\":\"literal\",\"value\":true}],\"operator\":\"and\"},\"unsavedId\":null}}&project_id=" + config.projectId + "&include_all_users=true";
+		//System.out.println("engage body: " + bodyString);
+		
 		@SuppressWarnings("deprecation")
-		RequestBody body = RequestBody.create(mediaType, 
-				"filter_by_cohort={\"raw_cohort\":{\"description\":\"\",\"name\":\"\",\"id\":null,\"unsavedId\":\"\",\"groups\":[{\"type\":\"cohort_group\",\"event\":{\"resourceType\":\"cohort\",\"value\":\"$all_users\",\"label\":\"All Users\"},\"filters\":[{\"filterValue\":" 
-						+"[{\"cohort\":{\"id\":" + cohortId + ",\"name\":\"" + cohortName + "\"" 
-						+ ",\"negated\":false}}],\"resourceType\":\"cohort\",\"propertyType\":\"list\",\"filterOperator\":\"contains\"}],\"filtersOperator\":\"and\",\"behavioralFiltersOperator\":\"and\",\"groupingOperator\":null,\"property\":null,\"dataGroupId\":\"\"}]}}&project_id=" + config.projectId);
+		RequestBody body = RequestBody.create(mediaType, bodyString);
+		
 		Request request = new Request.Builder()
 				.url("https://mixpanel.com/api/2.0/engage?project_id=" + config.projectId)
 				.method("POST", body)
@@ -201,6 +217,7 @@ public class App
 		try {
 			response = client.newCall(request).execute();
 			checkResponse(response, "failed to gather distinct ids for cohort " + cohortName);
+			System.out.println("engage message: " + response.message() + " code: " + response.code());
 			System.out.println("FINISH MixPanel engage query in " + (System.currentTimeMillis() - start) + "ms");
 		} catch (Exception e) {
 			e.printStackTrace(System.err);
@@ -211,6 +228,7 @@ public class App
 		JSONObject jsonResponse = new JSONObject(response.body().string());
 		JSONArray distinct_idList = new JSONArray();
 		JSONArray resultsArray = jsonResponse.getJSONArray("results");
+		System.out.println("gathered " + resultsArray.length() + " distinct_id");
 		for(int i = 0; i < resultsArray.length(); i++) {
 			JSONObject userObject = resultsArray.getJSONObject(i);
 			//System.out.println(userObject.getString("$distinct_id"));

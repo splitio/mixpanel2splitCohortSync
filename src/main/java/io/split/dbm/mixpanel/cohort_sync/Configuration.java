@@ -17,6 +17,7 @@ public class Configuration {
 	public String mixpanelAuthorization;
 	public String splitAuthorization;
 	public int segmentLimit;
+	public String[] includedCohorts;
 	
     public static Configuration fromFile(String configFilePath) throws IOException {
         String configContents = Files.readString(Paths.get(configFilePath));

@@ -155,7 +155,7 @@ public class App
 			// FIXME is this the right behavior?
 			ids = "[\"splitizen\"]"; // placeholder so that empty cohorts still create a segment
 		}
-		System.out.println("IDS: " + ids);
+		//System.out.println("IDS: " + ids);
 		RequestBody bodySplit = RequestBody.create(mediaTypeJson, ids);
 		Request requestSplit = new Request.Builder()
 				.url("https://api.split.io/internal/api/v2/segments/" + config.environmentId +"/" + convertToSplitPattern(cohortName) + "/upload")
@@ -196,44 +196,59 @@ public class App
 
 	private static JSONArray gatherDistinctIdsForCohort(OkHttpClient client, String cohortName, int cohortId) throws IOException {
 		long start = System.currentTimeMillis();
-		System.out.println("START MixPanel engage query");
-		MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
-//		String bodyString = "filter_by_cohort={\"raw_cohort\":{\"description\":\"\",\"name\":\"\",\"id\":null,\"unsavedId\":\"\",\"groups\":[{\"type\":\"cohort_group\",\"event\":{\"resourceType\":\"cohort\",\"value\":\"$all_users\",\"label\":\"All Users\"},\"filters\":[{\"filterValue\":" 
-//				+"[{\"cohort\":{\"id\":" + cohortId + ",\"name\":\"" + cohortName + "\"" 
-//				+ ",\"negated\":false}}],\"resourceType\":\"cohort\",\"propertyType\":\"list\",\"filterOperator\":\"contains\"}],\"filtersOperator\":\"and\",\"behavioralFiltersOperator\":\"and\",\"groupingOperator\":null,\"property\":null,\"dataGroupId\":\"\"}]}}&project_id=" + config.projectId;
-		String bodyString = "filter_by_cohort={\"raw_cohort\":{\"behaviors\":{},\"id\":null,\"name\":null,\"selector\":{\"children\":[{\"children\":[{\"property\":\"cohort\",\"value\":" + cohortId + "},{\"property\":\"literal\",\"value\":false}],\"operator\":\"or\"},{\"property\":\"literal\",\"value\":true}],\"operator\":\"and\"},\"unsavedId\":null}}&project_id=" + config.projectId + "&include_all_users=true";
-		//System.out.println("engage body: " + bodyString);
-		
-		@SuppressWarnings("deprecation")
-		RequestBody body = RequestBody.create(mediaType, bodyString);
-		
-		Request request = new Request.Builder()
-				.url("https://mixpanel.com/api/2.0/engage?project_id=" + config.projectId)
-				.method("POST", body)
-				.addHeader("Authorization", config.mixpanelAuthorization)
-				.addHeader("Content-Type", "application/x-www-form-urlencoded")
-				.build();
-		Response response = null;
-		try {
-			response = client.newCall(request).execute();
-			checkResponse(response, "failed to gather distinct ids for cohort " + cohortName);
-			System.out.println("engage message: " + response.message() + " code: " + response.code());
-			System.out.println("FINISH MixPanel engage query in " + (System.currentTimeMillis() - start) + "ms");
-		} catch (Exception e) {
-			e.printStackTrace(System.err);
-			System.err.println("Failed to reach MixPanel... exiting!");
-			System.exit(1);
-		}
 
-		JSONObject jsonResponse = new JSONObject(response.body().string());
 		JSONArray distinct_idList = new JSONArray();
-		JSONArray resultsArray = jsonResponse.getJSONArray("results");
-		System.out.println("gathered " + resultsArray.length() + " distinct_id");
-		for(int i = 0; i < resultsArray.length(); i++) {
-			JSONObject userObject = resultsArray.getJSONObject(i);
-			//System.out.println(userObject.getString("$distinct_id"));
-			distinct_idList.put(userObject.getString("$distinct_id"));
-		}
+		String session_id = null;
+		int page = 0;
+		int results = -1;
+
+		do {
+			System.out.println("START MixPanel engage query");
+			MediaType mediaType = MediaType.parse("application/x-www-form-urlencoded");
+	//		String bodyString = "filter_by_cohort={\"raw_cohort\":{\"description\":\"\",\"name\":\"\",\"id\":null,\"unsavedId\":\"\",\"groups\":[{\"type\":\"cohort_group\",\"event\":{\"resourceType\":\"cohort\",\"value\":\"$all_users\",\"label\":\"All Users\"},\"filters\":[{\"filterValue\":" 
+	//				+"[{\"cohort\":{\"id\":" + cohortId + ",\"name\":\"" + cohortName + "\"" 
+	//				+ ",\"negated\":false}}],\"resourceType\":\"cohort\",\"propertyType\":\"list\",\"filterOperator\":\"contains\"}],\"filtersOperator\":\"and\",\"behavioralFiltersOperator\":\"and\",\"groupingOperator\":null,\"property\":null,\"dataGroupId\":\"\"}]}}&project_id=" + config.projectId;
+			String bodyString = "filter_by_cohort={\"raw_cohort\":{\"behaviors\":{},\"id\":null,\"name\":null,\"selector\":{\"children\":[{\"children\":[{\"property\":\"cohort\",\"value\":" + cohortId + "},{\"property\":\"literal\",\"value\":false}],\"operator\":\"or\"},{\"property\":\"literal\",\"value\":true}],\"operator\":\"and\"},\"unsavedId\":null}}&project_id=" + config.projectId + "&include_all_users=true";
+			if(session_id != null) {
+				bodyString += "&session_id=" + session_id + "&page=" + page;
+			}
+			System.out.println("engage body: " + bodyString);
+			
+			@SuppressWarnings("deprecation")
+			RequestBody body = RequestBody.create(mediaType, bodyString);
+			
+			Request request = new Request.Builder()
+					.url("https://mixpanel.com/api/2.0/engage?project_id=" + config.projectId)
+					.method("POST", body)
+					.addHeader("Authorization", config.mixpanelAuthorization)
+					.addHeader("Content-Type", "application/x-www-form-urlencoded")
+					.build();
+			Response response = null;
+			try {
+				response = client.newCall(request).execute();
+				checkResponse(response, "failed to gather distinct ids for cohort " + cohortName);
+				System.out.println("engage message: " + response.message() + " code: " + response.code());
+				System.out.println("FINISH MixPanel engage query in " + (System.currentTimeMillis() - start) + "ms");
+			} catch (Exception e) {
+				e.printStackTrace(System.err);
+				System.err.println("Failed to reach MixPanel... exiting!");
+				System.exit(1);
+			}
+
+			JSONObject jsonResponse = new JSONObject(response.body().string());
+			session_id = jsonResponse.getString("session_id");
+			page++;
+			JSONArray resultsArray = jsonResponse.getJSONArray("results");
+
+			System.out.println("gathered " + resultsArray.length() + " distinct_id");
+			results = resultsArray.length();
+		
+			for(int i = 0; i < resultsArray.length(); i++) {
+				JSONObject userObject = resultsArray.getJSONObject(i);
+				distinct_idList.put(userObject.getString("$distinct_id"));
+			}
+		} while(results > 0);
+
 		return distinct_idList;
 	}
 
